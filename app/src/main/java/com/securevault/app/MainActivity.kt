@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.securevault.app.security.CryptoManager
+import com.securevault.app.ui.VaultItem
 import com.securevault.app.ui.VaultViewModel
 
 class MainActivity : ComponentActivity() {
@@ -37,7 +38,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun SecureVaultApp(vm: VaultViewModel = viewModel()) {
     val state by vm.uiState.collectAsState()
-
     if (state.isLocked) {
         LockScreen(onUnlock = { password, salt -> vm.unlock(password, salt) }, error = state.error)
     } else {
@@ -47,7 +47,6 @@ fun SecureVaultApp(vm: VaultViewModel = viewModel()) {
 
 @Composable
 fun LockScreen(onUnlock: (String, ByteArray) -> Unit, error: String?) {
-    // Salt ثابت للتجربة (في نسخة احترافية، نخزنو في DataStore)
     val salt = remember { "SecureVaultFixedSalt2024".toByteArray() }
     var password by remember { mutableStateOf("") }
 
@@ -84,9 +83,6 @@ fun LockScreen(onUnlock: (String, ByteArray) -> Unit, error: String?) {
         ) {
             Text("فتح الخزنة", fontSize = 16.sp)
         }
-
-        Spacer(Modifier.height(12.dp))
-        Text("استعمل كلمة سر قوية", color = Color.Gray, fontSize = 12.sp)
     }
 }
 
@@ -94,7 +90,6 @@ fun LockScreen(onUnlock: (String, ByteArray) -> Unit, error: String?) {
 fun VaultScreen(vm: VaultViewModel) {
     val state by vm.uiState.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
-    var searchQuery by remember { mutableStateOf("") }
 
     Scaffold(
         floatingActionButton = {
@@ -115,15 +110,6 @@ fun VaultScreen(vm: VaultViewModel) {
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize().background(Color(0xFF0D1117))) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it; vm.onSearchChange(it) },
-                placeholder = { Text("بحث...") },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                modifier = Modifier.fillMaxWidth().padding(12.dp),
-                singleLine = true
-            )
-
             if (state.entries.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("لا توجد كلمات سر محفوظة", color = Color.Gray)
@@ -141,8 +127,8 @@ fun VaultScreen(vm: VaultViewModel) {
     if (showAddDialog) {
         AddPasswordDialog(
             onDismiss = { showAddDialog = false },
-            onSave = { title, user, pass, url, notes, cat ->
-                vm.addEntry(title, user, pass, url, notes, cat)
+            onSave = { title, user, pass ->
+                vm.addEntry(title, user, pass)
                 showAddDialog = false
             }
         )
@@ -150,7 +136,7 @@ fun VaultScreen(vm: VaultViewModel) {
 }
 
 @Composable
-fun VaultItemCard(entry: com.securevault.app.data.VaultEntry, onDelete: () -> Unit) {
+fun VaultItemCard(entry: VaultItem, onDelete: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF161B22))
@@ -169,13 +155,10 @@ fun VaultItemCard(entry: com.securevault.app.data.VaultEntry, onDelete: () -> Un
 }
 
 @Composable
-fun AddPasswordDialog(onDismiss: () -> Unit, onSave: (String, String, String, String, String, String) -> Unit) {
+fun AddPasswordDialog(onDismiss: () -> Unit, onSave: (String, String, String) -> Unit) {
     var title by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var url by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("عام") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -185,12 +168,8 @@ fun AddPasswordDialog(onDismiss: () -> Unit, onSave: (String, String, String, St
                 OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("الاسم") }, singleLine = true)
                 OutlinedTextField(value = username, onValueChange = { username = it }, label = { Text("اسم المستخدم") }, singleLine = true)
                 OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("كلمة السر") }, singleLine = true)
-                OutlinedTextField(value = url, onValueChange = { url = it }, label = { Text("الرابط") }, singleLine = true)
-
                 Spacer(Modifier.height(8.dp))
-                TextButton(onClick = {
-                    password = CryptoManager.generatePassword(20)
-                }) {
+                TextButton(onClick = { password = CryptoManager.generatePassword(20) }) {
                     Text("🎲 توليد كلمة سر قوية")
                 }
             }
@@ -198,7 +177,7 @@ fun AddPasswordDialog(onDismiss: () -> Unit, onSave: (String, String, String, St
         confirmButton = {
             TextButton(onClick = {
                 if (title.isNotBlank() && password.isNotBlank()) {
-                    onSave(title, username, password, url, notes, category)
+                    onSave(title, username, password)
                 }
             }) { Text("حفظ") }
         },

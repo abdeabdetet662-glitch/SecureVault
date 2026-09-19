@@ -59,14 +59,11 @@ dependencies {
     // Security
     implementation 'androidx.security:security-crypto:1.1.0-alpha06'
     implementation 'net.zetetic:android-database-sqlcipher:4.5.4'
-    implementation 'androidx.sqlite:sqlite-ktx:2.4.0'
 
     // Biometric
     implementation 'androidx.biometric:biometric:1.1.0'
 
     // Room (قاعدة البيانات)
-    implementation 'androidx.room:room-runtime:2.6.1'
-    implementation 'androidx.room:room-ktx:2.6.1'
 
     // Coroutines
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
